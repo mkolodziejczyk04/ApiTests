@@ -1,14 +1,12 @@
+import kong.unirest.HttpStatus;
 import kong.unirest.json.JSONObject;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.example.requests.CreateBoard;
+
+import org.example.requests.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.example.requests.DeleteBoard;
-import org.example.requests.GetBoard;
-import org.example.requests.PutBoard;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -18,70 +16,67 @@ public class BoardApiTestAssertJ extends BasicTest {
     private final GetBoard getBoard = new GetBoard();
     private final PutBoard putBoard = new PutBoard();
     private final DeleteBoard deleteBoard = new DeleteBoard();
+    private BoardClient boardClient = new BoardClient();
+    private String boardName = "board Name";
 
     @Test
     public void shouldCreateBoardSuccessfully() throws IOException, ParseException {
-        String boardName = "Nice board";
-        CloseableHttpResponse response = createBoard.sendPost(boardName);
+        ApiResponse apiResponse = boardClient.createBoardAndGetJson(boardName);
+        JSONObject jsonAfterCreate = apiResponse.getBody();
+        String boardIdAfterSend = jsonAfterCreate.getString("id");
 
-        String result = EntityUtils.toString(response.getEntity());
-        JSONObject json = new JSONObject(result);
+        int responseCode = apiResponse.getStatusCode();
+        String nameAfterSend = jsonAfterCreate.getString("name");
 
-        String nameAfterSend = json.getString("name");
-        String boardIdAfterSend = json.getString("id");
-        int responseCode = response.getCode();
-
-        assertThat(responseCode).isEqualTo(200);
+        assertThat(responseCode).isEqualTo(HttpStatus.OK);
         assertThat(nameAfterSend).isEqualTo(boardName);
         assertThat(boardIdAfterSend).isNotNull();
     }
 
     @Test
     public void shouldGetBoardSuccessfully() throws IOException, ParseException {
-        String id = "6968d5ac927ef5bb0475e5db";
-        CloseableHttpResponse response = getBoard.sendGet(id);
+        String idOfNewCratedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
-        String result = EntityUtils.toString(response.getEntity());
-        JSONObject json = new JSONObject(result);
+        CloseableHttpResponse responseOfGet = getBoard.sendGet(idOfNewCratedBoard);
+        JSONObject jsonAfterGet = boardClient.getJsonObject(responseOfGet);
 
-        String idAfterSendGet = json.getString("id");
-        int responseCode = response.getCode();
+        int responseCode = responseOfGet.getCode();
+        String idAfterSendGet = jsonAfterGet.getString("id");
 
-        assertThat(responseCode).isEqualTo(200);
-        assertThat(idAfterSendGet).isEqualTo(id);
+        assertThat(responseCode).isEqualTo(HttpStatus.OK);
+        assertThat(idAfterSendGet).isNotNull();
+        responseOfGet.close();
     }
 
     @Test
     public void shouldPutBoardSuccessfully() throws IOException, ParseException {
-        String id = "6968d58bfebd4fe9d378a942";
-        String newBoardName = "new Board Name";
-        CloseableHttpResponse response = putBoard.sendPut(id, newBoardName);
+        String newBoardName = "name after put";
+        String idOfNewCratedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
-        String result = EntityUtils.toString(response.getEntity());
-        JSONObject json = new JSONObject(result);
+        CloseableHttpResponse responseOfPut = putBoard.sendPut(idOfNewCratedBoard, newBoardName);
+        JSONObject jsonAfterPut = boardClient.getJsonObject(responseOfPut);
 
-        String idAfterSendPut = json.getString("id");
-        int responseCode = response.getCode();
-        String nameAfterPut = json.getString("name");
+        String idAfterSendPut = jsonAfterPut.getString("id");
+        int responseCode = responseOfPut.getCode();
+        String nameAfterPut = jsonAfterPut.getString("name");
 
-        assertThat(result).isNotNull();
-        assertThat(responseCode).isEqualTo(200);
-        assertThat(idAfterSendPut).isEqualTo(id);
+        assertThat(responseCode).isEqualTo(HttpStatus.OK);
+        assertThat(idAfterSendPut).isEqualTo(idOfNewCratedBoard);
         assertThat(nameAfterPut).isEqualTo(newBoardName);
+        responseOfPut.close();
     }
 
     @Test
     public void shouldDeleteBoardSuccessfully() throws IOException, ParseException {
-        String id = "6968d58408af740d10cc4885";
-        CloseableHttpResponse response = deleteBoard.sendDelete(id);
+        String idOfNewCreatedBoard = boardClient.getIdOfCreatedBoard(boardName);
+        CloseableHttpResponse responseOfDelete = deleteBoard.sendDelete(idOfNewCreatedBoard);
 
-        String result = EntityUtils.toString(response.getEntity());
-        JSONObject json = new JSONObject(result);
-        int responseCode = response.getCode();
+        JSONObject jsonAfterDelete = boardClient.getJsonObject(responseOfDelete);
+        int responseCode = responseOfDelete.getCode();
 
-        String idAfterString = json.optString("id", null);
-
-        assertThat(responseCode).isEqualTo(200);
+        String idAfterString = jsonAfterDelete.optString("id", null);
+        assertThat(responseCode).isEqualTo(HttpStatus.OK);
         assertThat(idAfterString).isNull();
+        responseOfDelete.close();
     }
 }
