@@ -6,7 +6,7 @@ public abstract class BasicTest {
     public void checkEnvironmentalVariables() {
         String key = System.getenv("TRELLO_KEY");
         String token = System.getenv("TRELLO_TOKEN");
-        Assert.assertNotNull(key);
-        Assert.assertNotNull(token);
+        Assert.assertNotNull(key, "Trello key was not provided");
+        Assert.assertNotNull(token, "Trello token was not provided");
     }
 }

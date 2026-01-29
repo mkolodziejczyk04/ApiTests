@@ -17,10 +17,10 @@ public class BoardClient {
     }
 
     public ApiResponse createBoardAndGetJson(String boardName) throws IOException, ParseException {
-        CloseableHttpResponse response = createBoard.sendPost(boardName);
-        JSONObject json = getJsonObject(response);
-        response.close();
-        return new ApiResponse(response.getCode(), json);
+        try(CloseableHttpResponse response = createBoard.sendPost(boardName)){
+            JSONObject json = getJsonObject(response);
+            return new ApiResponse(response.getCode(), json);
+        }
     }
 
     public String getIdOfCreatedBoard(String boardName) throws IOException, ParseException {

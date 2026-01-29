@@ -20,32 +20,34 @@ public class BoardApiTestAssertJ extends BasicTest {
     private String boardName = "board Name";
 
     @Test
-    public void shouldCreateBoardSuccessfully() throws IOException, ParseException {
-        ApiResponse apiResponse = boardClient.createBoardAndGetJson(boardName);
-        JSONObject jsonAfterCreate = apiResponse.getBody();
-        String boardIdAfterSend = jsonAfterCreate.getString("id");
+    public void shouldCreateBoardSuccessfully() throws Exception {
+        try (ApiResponse apiResponse = boardClient.createBoardAndGetJson(boardName)) {
+            JSONObject jsonAfterCreate = apiResponse.getBody();
+            String boardIdAfterSend = jsonAfterCreate.getString("id");
 
-        int responseCode = apiResponse.getStatusCode();
-        String nameAfterSend = jsonAfterCreate.getString("name");
+            int responseCode = apiResponse.getStatusCode();
+            String nameAfterSend = jsonAfterCreate.getString("name");
 
-        assertThat(responseCode).isEqualTo(HttpStatus.OK);
-        assertThat(nameAfterSend).isEqualTo(boardName);
-        assertThat(boardIdAfterSend).isNotNull();
+            assertThat(responseCode).isEqualTo(HttpStatus.OK);
+            assertThat(nameAfterSend).isEqualTo(boardName);
+            assertThat(boardIdAfterSend).isNotNull();
+        }
     }
 
     @Test
     public void shouldGetBoardSuccessfully() throws IOException, ParseException {
         String idOfNewCratedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
-        CloseableHttpResponse responseOfGet = getBoard.sendGet(idOfNewCratedBoard);
-        JSONObject jsonAfterGet = boardClient.getJsonObject(responseOfGet);
+        try (CloseableHttpResponse responseOfGet = getBoard.sendGet(idOfNewCratedBoard)) {
+            JSONObject jsonAfterGet = boardClient.getJsonObject(responseOfGet);
+            int responseCode = responseOfGet.getCode();
+            String idAfterSendGet = jsonAfterGet.getString("id");
+            String nameAfterSendGet = jsonAfterGet.getString("name");
 
-        int responseCode = responseOfGet.getCode();
-        String idAfterSendGet = jsonAfterGet.getString("id");
-
-        assertThat(responseCode).isEqualTo(HttpStatus.OK);
-        assertThat(idAfterSendGet).isNotNull();
-        responseOfGet.close();
+            assertThat(responseCode).isEqualTo(HttpStatus.OK);
+            assertThat(idAfterSendGet).isEqualTo(idOfNewCratedBoard);
+            assertThat(nameAfterSendGet).isEqualTo(boardName);
+        }
     }
 
     @Test
@@ -53,30 +55,32 @@ public class BoardApiTestAssertJ extends BasicTest {
         String newBoardName = "name after put";
         String idOfNewCratedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
-        CloseableHttpResponse responseOfPut = putBoard.sendPut(idOfNewCratedBoard, newBoardName);
-        JSONObject jsonAfterPut = boardClient.getJsonObject(responseOfPut);
+        try (CloseableHttpResponse responseOfPut = putBoard.sendPut(idOfNewCratedBoard, newBoardName)) {
+        }
 
-        String idAfterSendPut = jsonAfterPut.getString("id");
-        int responseCode = responseOfPut.getCode();
-        String nameAfterPut = jsonAfterPut.getString("name");
+        try (CloseableHttpResponse response = getBoard.sendGet(idOfNewCratedBoard)) {
+            JSONObject jsonAfterGet = boardClient.getJsonObject(response);
+            int responseCode = response.getCode();
+            String nameAfterPut = jsonAfterGet.getString("name");
+            String idAfterPut = jsonAfterGet.getString("id");
 
-        assertThat(responseCode).isEqualTo(HttpStatus.OK);
-        assertThat(idAfterSendPut).isEqualTo(idOfNewCratedBoard);
-        assertThat(nameAfterPut).isEqualTo(newBoardName);
-        responseOfPut.close();
+
+            assertThat(responseCode).isEqualTo(HttpStatus.OK);
+            assertThat(idAfterPut).isEqualTo(idOfNewCratedBoard);
+            assertThat(nameAfterPut).isEqualTo(newBoardName);
+        }
     }
 
     @Test
     public void shouldDeleteBoardSuccessfully() throws IOException, ParseException {
         String idOfNewCreatedBoard = boardClient.getIdOfCreatedBoard(boardName);
-        CloseableHttpResponse responseOfDelete = deleteBoard.sendDelete(idOfNewCreatedBoard);
 
-        JSONObject jsonAfterDelete = boardClient.getJsonObject(responseOfDelete);
-        int responseCode = responseOfDelete.getCode();
+        try (CloseableHttpResponse responseOfDelete = deleteBoard.sendDelete(idOfNewCreatedBoard)) {
+        }
 
-        String idAfterString = jsonAfterDelete.optString("id", null);
-        assertThat(responseCode).isEqualTo(HttpStatus.OK);
-        assertThat(idAfterString).isNull();
-        responseOfDelete.close();
+        try (CloseableHttpResponse responseOfGet = getBoard.sendGet(idOfNewCreatedBoard)) {
+            int responseCode = responseOfGet.getCode();
+            assertThat(responseCode).isEqualTo(HttpStatus.NOT_FOUND);
+        }
     }
 }

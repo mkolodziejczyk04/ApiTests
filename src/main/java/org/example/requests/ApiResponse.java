@@ -2,7 +2,7 @@ package org.example.requests;
 
 import kong.unirest.json.JSONObject;
 
-public class ApiResponse {
+public class ApiResponse implements AutoCloseable {
     private int statusCode;
     private JSONObject body;
 
@@ -25,5 +25,10 @@ public class ApiResponse {
 
     public void setBody(JSONObject body) {
         this.body = body;
+    }
+
+    @Override
+    public void close() throws Exception {
+
     }
 }

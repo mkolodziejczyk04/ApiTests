@@ -2,6 +2,7 @@ import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.ParseException;
 import org.example.pojos.Root;
 import org.example.requests.*;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 import retrofit2.Response;
 
@@ -20,17 +21,19 @@ public class BoardApiTestRetrofitOkHttp extends BasicTest {
     @Test
     public void shouldCreateBoardSuccessfully() throws IOException, ParseException {
         Response<Root> response = createBoard.sendPost(boardName);
-        Root result = response.body();
+        String idOfNewBoard = response.body().getId();
 
-        assertThat(response.body()).isNotNull();
-        String idAfterSendPost = result.getId();
-        int responseCode = response.code();
+        Response<Root> responseOfGet = getBoard.sendGet(idOfNewBoard);
+        Root result = responseOfGet.body();
+        Assert.assertNotNull(result);
+
+        int responseCode = responseOfGet.code();
         String nameAfterSendPost = result.getName();
-
+        String idAfterSendCreate = result.getId();
 
         assertThat(responseCode).isEqualTo(HttpStatus.SC_OK);
         assertThat(nameAfterSendPost).isEqualTo(boardName);
-        assertThat(idAfterSendPost).isNotNull();
+        assertThat(idAfterSendCreate).isNotNull();
     }
 
     @Test
@@ -55,13 +58,17 @@ public class BoardApiTestRetrofitOkHttp extends BasicTest {
         String newBoardName = "new Board Name";
         Response<Root> response = putBoard.sendPut(idOfCreatedBoard, newBoardName);
 
-        Root result = response.body();
-        int responseCode = response.code();
-        assertThat(response.body()).isNotNull();
+        Response<Root> responseAfterGet = getBoard.sendGet(idOfCreatedBoard);
+
+
+        Root result = responseAfterGet.body();
+
+        int responseCode = responseAfterGet.code();
+
+        assertThat(result).isNotNull();
         String idAfterSendPut = result.getId();
         String nameAfterSendPut = result.getName();
 
-        assertThat(result).isNotNull();
         assertThat(responseCode).isEqualTo(HttpStatus.SC_OK);
         assertThat(idAfterSendPut).isEqualTo(idOfCreatedBoard);
         assertThat(nameAfterSendPut).isEqualTo(newBoardName);
@@ -72,10 +79,9 @@ public class BoardApiTestRetrofitOkHttp extends BasicTest {
         String idOfCreatedBoard = boardClient.getIdOfCreatedBoard(boardName);
         Response<Root> response = deleteBoard.sendDelete(idOfCreatedBoard);
 
-        String idAfterSendDelete = response.body().id;
-        int responseCode = response.code();
+        Response<Root> responseAfterGet = getBoard.sendGet(idOfCreatedBoard);
+        int responseCode = responseAfterGet.code();
 
-        assertThat(responseCode).isEqualTo(HttpStatus.SC_OK);
-        assertThat(idAfterSendDelete).isNull();
+        assertThat(responseCode).isEqualTo(HttpStatus.SC_NOT_FOUND);
     }
 }

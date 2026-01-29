@@ -1,15 +1,27 @@
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
+import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.ParseException;
+import org.example.requests.BoardClient;
+import org.example.requests.CreateBoard;
 import org.testng.annotations.Test;
+
+import java.io.IOException;
+
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 
 public class BoardApiTestRestAssured extends BasicTest {
     public static String key = System.getenv("TRELLO_KEY");
     public static String token = System.getenv("TRELLO_TOKEN");
+    private final BoardClient boardClient = new BoardClient();
+    private final String boardName = "Nice board";
+
 
     @Test
-    public static void PostApiTest() {
+    public void PostApiTest() {
         String requestBody = """ 
                 {
                          "name": "rest assured board"
@@ -17,7 +29,7 @@ public class BoardApiTestRestAssured extends BasicTest {
                 """;
         JsonPath expectedResponse = new JsonPath(requestBody);
 
-        given()
+        Response postResponse = given()
                 .baseUri("https://api.trello.com/1/boards")
                 .contentType(ContentType.JSON)
                 .queryParam("key", key)
@@ -26,33 +38,31 @@ public class BoardApiTestRestAssured extends BasicTest {
                 .when()
                 .post()
                 .then()
-                .statusCode(200)
-                .body("name", equalTo(expectedResponse.getString("name")))
-                .body("id", notNullValue())
+                .statusCode(HttpStatus.SC_OK)
+                .extract()
+                .response();
+
+        String idOfNewCreatedBoard = postResponse.path("id");
+
+        getBoardById(idOfNewCreatedBoard)
+                .statusCode(HttpStatus.SC_OK)
+                .body("id", equalTo(idOfNewCreatedBoard))
                 .log().all();
     }
 
     @Test
-    public static void GetApiTest() {
-        String boardId = "6967a17183189bfe9273a34c";
+    public void GetApiTest() throws IOException, ParseException {
+        String idOfNewCreatedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
-        given()
-                .baseUri("https://api.trello.com/1/boards")
-                .contentType(ContentType.JSON)
-                .queryParam("key", key)
-                .queryParam("token", token)
-                .pathParam("id", boardId)
-                .when()
-                .get("/{id}")
-                .then()
-                .statusCode(200)
-                .body("id", equalTo(boardId))
+        getBoardById(idOfNewCreatedBoard)
+                .statusCode(HttpStatus.SC_OK)
+                .body("id", equalTo(idOfNewCreatedBoard))
                 .log().all();
     }
 
     @Test
-    public static void PutApiTest() {
-        String boardId = "6967b2208d8c75dc21c1bccb";
+    public void PutApiTest() throws IOException, ParseException {
+        String idOfNewCreatedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
         String requestBody = """ 
                 {
@@ -67,32 +77,48 @@ public class BoardApiTestRestAssured extends BasicTest {
                 .contentType(ContentType.JSON)
                 .queryParam("key", key)
                 .queryParam("token", token)
-                .pathParam("id", boardId)
+                .pathParam("id", idOfNewCreatedBoard)
                 .body(requestBody)
                 .when()
                 .put("/{id}")
                 .then()
-                .statusCode(200)
-                .body("id", equalTo(boardId))
-                .body("name", equalTo(expectedResponse.getString("name")))
+                .statusCode(HttpStatus.SC_OK);
+
+        getBoardById(idOfNewCreatedBoard)
+                .statusCode(HttpStatus.SC_OK)
+                .body("id", equalTo(idOfNewCreatedBoard))
                 .log().all();
     }
 
     @Test
-    public static void DeleteApiTest() {
-        String boardId = "6967f455a9825dc4b218db15";
+    public void DeleteApiTest() throws IOException, ParseException {
+        String idOfNewCreatedBoard = boardClient.getIdOfCreatedBoard(boardName);
 
         given()
                 .baseUri("https://api.trello.com/1/boards")
                 .contentType(ContentType.JSON)
                 .queryParam("key", key)
                 .queryParam("token", token)
-                .pathParam("id", boardId)
+                .pathParam("id", idOfNewCreatedBoard)
                 .when()
                 .delete("/{id}")
                 .then()
-                .statusCode(200)
-                .body("id", nullValue())
+                .statusCode(HttpStatus.SC_OK);
+
+        getBoardById(idOfNewCreatedBoard)
+                .statusCode(HttpStatus.SC_NOT_FOUND)
                 .log().all();
+    }
+
+    private static ValidatableResponse getBoardById(String idOfNewCreatedBoard) {
+        return given()
+                .baseUri("https://api.trello.com/1/boards")
+                .contentType(ContentType.JSON)
+                .queryParam("key", key)
+                .queryParam("token", token)
+                .pathParam("id", idOfNewCreatedBoard)
+                .when()
+                .get("/{id}")
+                .then();
     }
 }
