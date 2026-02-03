@@ -1,0 +1,36 @@
+package org.example.requests;
+
+import org.example.api.ApiService;
+import org.example.pojos.Root;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+import java.io.IOException;
+
+public class DeleteBoardRetrofitOkHttp {
+    public Response sendDelete(String boardId) throws IOException {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://api.trello.com/1/boards/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        String key = System.getenv("TRELLO_KEY");
+        String token = System.getenv("TRELLO_TOKEN");
+
+        ApiService api = retrofit.create(ApiService.class);
+
+        Call<Root> call = api.sendDelete(boardId,token, key);
+
+        Response<Root> response = call.execute();
+
+        return response;
+    }
+
+    static void main() throws IOException {
+        DeleteBoardRetrofitOkHttp deleteBoardRetrofitOkHttp = new DeleteBoardRetrofitOkHttp();
+        Response response = deleteBoardRetrofitOkHttp.sendDelete("6968c8f6b03b5890b1e6760e");
+        System.out.println(response.code());
+    }
+}
